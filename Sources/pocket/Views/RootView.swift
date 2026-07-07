@@ -29,8 +29,9 @@ struct RootView: View {
                 .environmentObject(store)
             }
         }
-        .frame(width: 340)
-        .frame(minHeight: 120)
+        // A concrete height is required: inside MenuBarExtra's .window style a
+        // ScrollView with only a maxHeight collapses to zero and the panel looks empty.
+        .frame(width: 360, height: 480)
     }
 
     // MARK: - List screen
@@ -45,7 +46,7 @@ struct RootView: View {
             Divider()
 
             content
-                .frame(maxHeight: 360)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
             footer
@@ -103,8 +104,11 @@ struct RootView: View {
                 .buttonStyle(.borderless)
             }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 12)
-        .padding(.bottom, 8)
+        .padding(.bottom, 10)
     }
 
     @ViewBuilder
@@ -150,8 +154,8 @@ struct RootView: View {
             }
             .buttonStyle(.borderedProminent)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
     }
 
     private var emptyState: some View {
@@ -170,8 +174,8 @@ struct RootView: View {
                 .buttonStyle(.link)
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 36)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
     }
 
     private var footer: some View {
