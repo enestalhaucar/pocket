@@ -37,6 +37,26 @@ Native SwiftUI, minimal, open source.
   `LAPolicy.deviceOwnerAuthentication` → Touch ID, with automatic password fallback.
 - pocket never sends anything anywhere. No network code, no telemetry.
 
+## Install (download)
+
+Grab the latest `pocket-x.y.z.dmg` from the
+[Releases page](https://github.com/enestalhaucar/pocket/releases), open it, and
+drag **pocket** into Applications.
+
+pocket is ad-hoc signed (no paid Apple Developer account), so the first time you
+open it macOS may say it's from an unidentified developer. Either:
+
+- Right-click the app → **Open** → **Open**, or
+- Run once: `xattr -cr /Applications/pocket.app`
+
+To have it start with your Mac: open pocket → ⚙️ Settings → **Girişte otomatik başlat**.
+
+## Package a shareable build
+
+```bash
+./package.sh          # builds dist/pocket-<version>.dmg
+```
+
 ## Build & run
 
 Requires macOS 14+ and a recent Swift toolchain (ships with Xcode).
