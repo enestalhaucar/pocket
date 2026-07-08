@@ -21,6 +21,9 @@ struct Item: Identifiable, Codable, Equatable {
     /// When true the item lives in the Kasa (vault) and needs Touch ID to reveal.
     var locked: Bool = false
 
+    /// Pinned items sort to the top of their list.
+    var pinned: Bool = false
+
     var createdAt: Date = Date()
 
     var isFile: Bool { kind == .file }

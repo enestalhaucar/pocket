@@ -14,11 +14,12 @@ struct EditItemView: View {
     @State private var fileName: String
     @State private var isFile: Bool
 
-    init(item: Item?, startLocked: Bool, onDone: @escaping () -> Void) {
+    init(item: Item?, startLocked: Bool, prefill: String = "", onDone: @escaping () -> Void) {
         self.existing = item
         self.onDone = onDone
         _title = State(initialValue: item?.title ?? "")
-        _body_ = State(initialValue: item?.isFile == true ? "" : (item?.body ?? ""))
+        let initialBody = item?.isFile == true ? "" : (item?.body ?? (item == nil ? prefill : ""))
+        _body_ = State(initialValue: initialBody)
         _locked = State(initialValue: item?.locked ?? startLocked)
         _fileData = State(initialValue: item?.fileData)
         _fileName = State(initialValue: item?.isFile == true ? (item?.body ?? "") : "")

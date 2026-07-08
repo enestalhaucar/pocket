@@ -22,6 +22,10 @@ enum Clipboard {
             }
         } else {
             pb.setString(item.body, forType: .string)
+            // Mark secrets concealed so other clipboard managers skip them.
+            if item.locked {
+                pb.setData(Data(), forType: NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"))
+            }
         }
     }
 }

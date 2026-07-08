@@ -2,15 +2,12 @@ import SwiftUI
 
 @main
 struct PocketApp: App {
-    @StateObject private var store = Store()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra {
-            RootView()
-                .environmentObject(store)
-        } label: {
-            Image(systemName: "tray.full.fill")
+        Settings {
+            SettingsView()
+                .environmentObject(appDelegate.store)
         }
-        .menuBarExtraStyle(.window)
     }
 }
