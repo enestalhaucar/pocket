@@ -11,7 +11,7 @@ struct RootView: View {
     }
 
     @AppStorage("didOnboard") private var didOnboard = false
-    @State private var tab: Tab = .pocket
+    @State private var tab: Tab = .history
     @State private var screen: Screen = .list
     @State private var search = ""
     @State private var copiedID: UUID?
@@ -40,6 +40,8 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .pocketDidOpen)) { _ in
             store.noteActivity()
             selection = 0
+            // Open straight to the clipboard history each time it's summoned.
+            if screen == .list { tab = .history }
             if screen == .list && didOnboard { searchFocused = true }
         }
     }
