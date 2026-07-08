@@ -14,6 +14,7 @@ struct RootView: View {
     @State private var search = ""
     @State private var copiedID: UUID?
     @State private var editingLocked = false
+    @State private var listHeight: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,12 +28,17 @@ struct RootView: View {
                     onDone: { screen = .list }
                 )
                 .environmentObject(store)
+                // The edit form's ScrollView has no intrinsic height, so pin it.
+                .frame(height: 460)
             }
         }
-        // A concrete height is required: inside MenuBarExtra's .window style a
-        // ScrollView with only a maxHeight collapses to zero and the panel looks empty.
-        .frame(width: 360, height: 480)
+        // Width is fixed; height is driven by the content (see `content`) so the
+        // panel stays compact when there's little in it and grows up to a cap.
+        .frame(width: 360)
     }
+
+    /// Maximum height for the scrollable item list before it starts scrolling.
+    private let maxListHeight: CGFloat = 320
 
     // MARK: - List screen
 
@@ -46,7 +52,6 @@ struct RootView: View {
             Divider()
 
             content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
             footer
@@ -119,7 +124,7 @@ struct RootView: View {
             emptyState
         } else {
             ScrollView {
-                LazyVStack(spacing: 2) {
+                VStack(spacing: 2) {
                     ForEach(visibleItems) { item in
                         ItemRowView(
                             item: item,
@@ -135,7 +140,13 @@ struct RootView: View {
                     }
                 }
                 .padding(6)
+                .background(GeometryReader { g in
+                    Color.clear.preference(key: ContentHeightKey.self, value: g.size.height)
+                })
             }
+            // Fit the list to its content, but never taller than the cap.
+            .frame(height: min(max(listHeight, 1), maxListHeight))
+            .onPreferenceChange(ContentHeightKey.self) { listHeight = $0 }
         }
     }
 
@@ -154,8 +165,9 @@ struct RootView: View {
             }
             .buttonStyle(.borderedProminent)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(24)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 44)
     }
 
     private var emptyState: some View {
@@ -174,8 +186,9 @@ struct RootView: View {
                 .buttonStyle(.link)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(24)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 44)
     }
 
     private var footer: some View {
@@ -222,5 +235,13 @@ struct RootView: View {
             try? await Task.sleep(nanoseconds: 1_100_000_000)
             if copiedID == item.id { copiedID = nil }
         }
+    }
+}
+
+/// Reports the natural height of the item list so the panel can size to it.
+private struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
