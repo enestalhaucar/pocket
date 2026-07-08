@@ -56,11 +56,18 @@ final class Store: ObservableObject {
 
     // MARK: - Derived collections
 
-    /// Pinned first, otherwise most-recent insertion order is preserved by `items`.
+    /// Pinned items first (in their manual order); the rest float by frecency
+    /// (usage count, then most-recently used), falling back to insertion order.
     private func sorted(_ list: [Item]) -> [Item] {
         list.enumerated()
             .sorted { a, b in
-                if a.element.pinned != b.element.pinned { return a.element.pinned }
+                let x = a.element, y = b.element
+                if x.pinned != y.pinned { return x.pinned }
+                if x.pinned { return a.offset < b.offset }          // pinned: manual order
+                if x.useCount != y.useCount { return x.useCount > y.useCount }
+                let lx = x.lastUsedAt ?? .distantPast
+                let ly = y.lastUsedAt ?? .distantPast
+                if lx != ly { return lx > ly }
                 return a.offset < b.offset
             }
             .map(\.element)
@@ -115,6 +122,11 @@ final class Store: ObservableObject {
     func copy(_ item: Item) {
         Clipboard.copy(item)
         lastChangeCount = NSPasteboard.general.changeCount
+        if let idx = items.firstIndex(where: { $0.id == item.id }) {
+            items[idx].useCount += 1
+            items[idx].lastUsedAt = Date()
+            save()
+        }
         noteActivity()
     }
 

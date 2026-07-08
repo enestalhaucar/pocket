@@ -1,4 +1,5 @@
 import SwiftUI
+import Carbon.HIToolbox
 
 struct SettingsView: View {
     @EnvironmentObject private var store: Store
@@ -36,12 +37,58 @@ struct SettingsView: View {
                         LoginItem.setEnabled(newValue)
                         launchAtLogin = LoginItem.isEnabled
                     }
-                Text("Global kısayol: ⌘⇧Space")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                ShortcutRecorder()
             }
         }
         .formStyle(.grouped)
-        .frame(width: 380, height: 420)
+        .fontDesign(.rounded)
+        .frame(width: 400, height: 440)
+    }
+}
+
+/// Records a new global hotkey by capturing the next key combo.
+struct ShortcutRecorder: View {
+    @State private var shortcut = Shortcut.load()
+    @State private var recording = false
+    @State private var monitor: Any?
+
+    var body: some View {
+        HStack {
+            Text("Global kısayol")
+            Spacer()
+            Button {
+                recording ? stop() : start()
+            } label: {
+                Text(recording ? "Tuşlara bas…  (⎋ iptal)" : shortcut.display)
+                    .monospaced()
+                    .frame(minWidth: 90)
+            }
+            .buttonStyle(.bordered)
+            .tint(recording ? .red : .accentColor)
+        }
+    }
+
+    private func start() {
+        recording = true
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            if event.keyCode == UInt16(kVK_Escape) {
+                stop()
+                return nil
+            }
+            if let s = Shortcut.from(event: event) {
+                shortcut = s
+                s.save()
+                stop()
+            }
+            return nil // consume the event while recording
+        }
+    }
+
+    private func stop() {
+        recording = false
+        if let m = monitor {
+            NSEvent.removeMonitor(m)
+            monitor = nil
+        }
     }
 }

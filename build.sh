@@ -13,11 +13,15 @@ swift build -c "$CONFIG"
 
 BIN="$(swift build -c "$CONFIG" --show-bin-path)/${APP_NAME}"
 
+echo "▸ Rendering app icon…"
+swift Scripts/make-icon.swift build/AppIcon.icns || echo "  (icon generation skipped)"
+
 echo "▸ Assembling ${BUNDLE}…"
 rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
 cp "$BIN" "$BUNDLE/Contents/MacOS/${APP_NAME}"
 cp Resources/Info.plist "$BUNDLE/Contents/Info.plist"
+[ -f build/AppIcon.icns ] && cp build/AppIcon.icns "$BUNDLE/Contents/Resources/AppIcon.icns"
 
 echo "▸ Ad-hoc code signing…"
 codesign --force --deep --sign - "$BUNDLE"

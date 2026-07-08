@@ -24,6 +24,10 @@ struct Item: Identifiable, Codable, Equatable {
     /// Pinned items sort to the top of their list.
     var pinned: Bool = false
 
+    /// Frecency: how often and how recently this item was copied.
+    var useCount: Int = 0
+    var lastUsedAt: Date? = nil
+
     var createdAt: Date = Date()
 
     var isFile: Bool { kind == .file }

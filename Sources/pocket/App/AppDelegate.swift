@@ -35,11 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController = host
         popover.behavior = .transient
 
-        // Global hotkey: ⌘⇧Space toggles the panel from anywhere.
-        hotKey = HotKey(keyCode: UInt32(kVK_Space),
-                        modifiers: UInt32(cmdKey | shiftKey)) { [weak self] in
-            self?.togglePopover()
-        }
+        // Global hotkey (configurable): toggles the panel from anywhere.
+        registerHotKey()
+        NotificationCenter.default.addObserver(self, selector: #selector(registerHotKey),
+                                               name: .pocketShortcutChanged, object: nil)
 
         // Lock the vault when the Mac sleeps or the screen locks.
         let wc = NSWorkspace.shared.notificationCenter
@@ -62,6 +61,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem.button else { return }
         let count = store.items.filter { !$0.locked }.count
         button.title = (store.showBadge && count > 0) ? " \(count)" : ""
+    }
+
+    @objc private func registerHotKey() {
+        let s = Shortcut.load()
+        hotKey = HotKey(keyCode: s.keyCode, modifiers: s.carbonModifiers) { [weak self] in
+            self?.togglePopover()
+        }
     }
 
     @objc private func togglePopover() {

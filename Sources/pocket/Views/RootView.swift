@@ -10,6 +10,7 @@ struct RootView: View {
         case edit(Item?)
     }
 
+    @AppStorage("didOnboard") private var didOnboard = false
     @State private var tab: Tab = .pocket
     @State private var screen: Screen = .list
     @State private var search = ""
@@ -23,25 +24,42 @@ struct RootView: View {
     private let maxListHeight: CGFloat = 320
 
     var body: some View {
-        VStack(spacing: 0) {
-            switch screen {
-            case .list:
-                listScreen
-            case .edit(let item):
-                EditItemView(item: item, startLocked: editingLocked, prefill: editPrefill) {
-                    editPrefill = ""
-                    screen = .list
+        Group {
+            if !didOnboard {
+                WelcomeView {
+                    withAnimation(.snappy) { didOnboard = true }
+                    searchFocused = true
                 }
-                .environmentObject(store)
-                .frame(height: 460)
+                .transition(.opacity)
+            } else {
+                mainContent
             }
         }
         .frame(width: 360)
+        .fontDesign(.rounded)
         .onReceive(NotificationCenter.default.publisher(for: .pocketDidOpen)) { _ in
             store.noteActivity()
             selection = 0
-            if screen == .list { searchFocused = true }
+            if screen == .list && didOnboard { searchFocused = true }
         }
+    }
+
+    private var mainContent: some View {
+        VStack(spacing: 0) {
+            switch screen {
+            case .list:
+                listScreen.transition(.opacity)
+            case .edit(let item):
+                EditItemView(item: item, startLocked: editingLocked, prefill: editPrefill) {
+                    editPrefill = ""
+                    withAnimation(.snappy(duration: 0.2)) { screen = .list }
+                }
+                .environmentObject(store)
+                .frame(height: 460)
+                .transition(.opacity)
+            }
+        }
+        .animation(.snappy(duration: 0.2), value: screen)
     }
 
     // MARK: - List screen
@@ -54,6 +72,7 @@ struct RootView: View {
             searchField
             Divider()
             content
+            hintBar
             Divider()
             footer
         }
@@ -64,7 +83,7 @@ struct RootView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "tray.full.fill").foregroundStyle(.tint)
+            PocketMark(size: 20)
             Text("pocket").font(.headline)
             Spacer()
             Button(action: quickAddFromClipboard) {
@@ -76,7 +95,7 @@ struct RootView: View {
             Button {
                 editingLocked = (tab == .vault)
                 editPrefill = ""
-                screen = .edit(nil)
+                withAnimation(.snappy(duration: 0.2)) { screen = .edit(nil) }
             } label: {
                 Image(systemName: "plus")
             }
@@ -151,14 +170,17 @@ struct RootView: View {
             VStack(spacing: 2) {
                 ForEach(Array(visibleItems.enumerated()), id: \.element.id) { index, item in
                     itemRow(index: index, item: item)
+                        .transition(.opacity)
                 }
             }
             .padding(6)
+            .animation(.snappy(duration: 0.25), value: visibleItems)
             .background(GeometryReader { g in
                 Color.clear.preference(key: ContentHeightKey.self, value: g.size.height)
             })
         }
         .frame(height: min(max(listHeight, 1), maxListHeight))
+        .animation(.snappy(duration: 0.22), value: listHeight)
         .onPreferenceChange(ContentHeightKey.self) { listHeight = $0 }
     }
 
@@ -171,7 +193,7 @@ struct RootView: View {
             onEdit: {
                 editingLocked = item.locked
                 editPrefill = ""
-                screen = .edit(item)
+                withAnimation(.snappy(duration: 0.2)) { screen = .edit(item) }
             },
             onTogglePin: { store.togglePin(item) },
             onToggleLock: { store.toggleLock(item) },
@@ -200,14 +222,17 @@ struct RootView: View {
                                 onSave: { store.promote(entry) },
                                 onDelete: { store.deleteHistory(entry) }
                             )
+                            .transition(.opacity)
                         }
                     }
                     .padding(6)
+                    .animation(.snappy(duration: 0.25), value: store.history)
                     .background(GeometryReader { g in
                         Color.clear.preference(key: ContentHeightKey.self, value: g.size.height)
                     })
                 }
                 .frame(height: min(max(listHeight, 1), maxListHeight))
+                .animation(.snappy(duration: 0.22), value: listHeight)
                 .onPreferenceChange(ContentHeightKey.self) { listHeight = $0 }
             }
         }
@@ -235,7 +260,7 @@ struct RootView: View {
                 Button("Ekle") {
                     editingLocked = (tab == .vault)
                     editPrefill = ""
-                    screen = .edit(nil)
+                    withAnimation(.snappy(duration: 0.2)) { screen = .edit(nil) }
                 }
                 .buttonStyle(.link)
             }
@@ -245,12 +270,30 @@ struct RootView: View {
         .padding(.vertical, 44)
     }
 
+    private var hintBar: some View {
+        HStack(spacing: 12) {
+            hint("↑↓", "gez")
+            hint("⏎", "kopyala")
+            hint("⎋", "kapat")
+        }
+        .font(.system(size: 10))
+        .foregroundStyle(.tertiary)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 5)
+    }
+
+    private func hint(_ key: String, _ label: String) -> some View {
+        HStack(spacing: 3) {
+            Text(key).monospaced().padding(.horizontal, 4).padding(.vertical, 1)
+                .background(Color.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 3))
+            Text(label)
+        }
+    }
+
     private var footer: some View {
         HStack {
             if tab == .history && !store.history.isEmpty {
-                Button {
-                    store.clearHistory()
-                } label: {
+                Button { store.clearHistory() } label: {
                     Label("Geçmişi temizle", systemImage: "trash").font(.caption)
                 }
                 .buttonStyle(.borderless)
@@ -311,10 +354,10 @@ struct RootView: View {
     }
 
     private func flashCopied(_ id: UUID) {
-        copiedID = id
+        withAnimation(.easeOut(duration: 0.15)) { copiedID = id }
         Task {
             try? await Task.sleep(nanoseconds: 1_000_000_000)
-            if copiedID == id { copiedID = nil }
+            if copiedID == id { withAnimation(.easeIn(duration: 0.2)) { copiedID = nil } }
         }
     }
 
@@ -323,7 +366,7 @@ struct RootView: View {
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         editingLocked = (tab == .vault)
         editPrefill = text
-        screen = .edit(nil)
+        withAnimation(.snappy(duration: 0.2)) { screen = .edit(nil) }
     }
 
     private func moveSelection(_ delta: Int) {
